@@ -283,6 +283,7 @@
 			var m = _.max(infoGains,function(infoGain){return infoGain.infoGain});
 			return m;
 		}
+		/*
 		function informationGain(baseName,targetClass,attribute,v){
 			
 			var attrVals = getUnique(baseName,attribute),
@@ -366,12 +367,36 @@
 			console.log('INFOGAIN('+attribute+') = '+infoGain);
 			return {attribute:attribute,infoGain:infoGain};
 		}
+		*/
+		function informationGain(baseName,targetClass,attribute){
+			var attrVals = getUnique(baseName,attribute),
+					setEntropy = entropy(baseName,targetClass),
+					// setSize = Number(getSetSize(baseName)),
+					subsets = [],
+					entropies = [],
+					Sv = {};
+			// get subsets
+			var infoGain=entropy(baseName,targetClass);
+      for(i in attrVals){
+        subsets.push(countSubset(baseName,attribute,attrVals[i]));  
+        Sv[i] = getSv(baseName,targetClass,attribute,attrVals[i]);
+      }
+      // calculate entropies of subsets
+      for(i in Sv){
+        var s = Sv[i];
+        entropies.push(entropyNum(s));
+      }
+      // finally, calculate information gain
+      // var infoGain=setEntropy;
+      var setSize = _.reduce(subsets, function(memo, num){ return memo + num; }, 0);
+      for(i in attrVals){
+        infoGain -= Number(subsets[i]/setSize) * Number(entropies[i]);
+      }
+      return infoGain;
+		}
 		function LOG(msg){console.log(msg);$('#message').append(msg+'<br>');}
 
-
-
-
-		function gain(baseName,data,targetClass,attribute,v){
+		function gain(baseName,targetClass,attribute,v){
 			var attrVals = getUnique(baseName,attribute),
 					targetVals = getUnique(baseName,targetClass),
 					S = [], Sv = [], P = [], T = [],
@@ -384,11 +409,11 @@
 			for(i in attrVals){P.push(countSubset(baseName,attribute,attrVals[i],v)); } 
 			for(i in attrVals){T.push(countSubset(baseName,attribute,attrVals[i])); } 
 			for(i in attrVals){
-        subsets.push(countSubset(baseName,attribute,attrVals[i]));  
+        // subsets.push(countSubset(baseName,attribute,attrVals[i]));  
         Sv[i] = getSv(baseName,targetClass,attribute,attrVals[i],v);
       }
 			for(i in v){
-				LOG('gain('+baseName+',data,'+targetClass+','+attribute+',v) called');
+				LOG('gain('+baseName+','+targetClass+','+attribute+',v) called');
 				LOG('has parent node '+v[i].attribute+'='+v[i].value);
 			}
 			// if(v.length==1){
@@ -405,6 +430,7 @@
       	infoGain -= (P[i]/sum)*entropies[i];
       }
       console.log('\n\n GAIN = '+infoGain+'\n\n');
+      return {attribute:attribute,infoGain:infoGain};
       // var sums=[];
       // for(i in Sv){
       // 	s=0;
@@ -414,6 +440,19 @@
       // 	sums.push(s);
       // }
 
+		}
+		function maxGain(baseName,data,targetClass,v){
+			var infoGains = [];
+			for(i in data.attributes){
+				if(data.attributes[i].name!=targetClass){
+					console.log('will check for '+data.attributes[i].name);
+					thisGain = gain(baseName,targetClass,data.attributes[i].name,v);
+					infoGains.push(thisGain);
+				}
+			}
+			var k = _.pluck(infoGains, 'infoGain');
+			var m = _.max(infoGains,function(infoGain){return infoGain.infoGain});
+			return m;
 		}
 		var baseName = 'weather',
 				targetClass = 'play',
@@ -427,18 +466,9 @@
 		// setSize = getSetSize(baseName);
 		setEntropy = entropy(baseName,targetClass);
 		LOG('setEntropy is '+setEntropy+'<br>');
-		informationGain(baseName,targetClass,'windy');
+		// informationGain(baseName,targetClass,'windy');
 		v = [{'attribute':'outlook','value':'sunny'}];
-		gain(baseName,data,targetClass,'humidity',v);
-		// window.IG = getMaxInfoGain(baseName,data,targetClass);
-		// window.IGN = getMaxInfoGain(baseName,data,targetClass,v);
-		// informationGain(baseName,targetClass,'temperature',v)
-		/////////////// STOPPED HERE /////////////// 
-		/////////////// STOPPED HERE /////////////// 
-		/////////////// STOPPED HERE /////////////// 
-		/////////////// STOPPED HERE /////////////// 
-		/////////////// STOPPED HERE /////////////// 
-		/////////////// STOPPED HERE /////////////// 
+		
 
 		// informationGain(baseName,targetClass,'windy',v);
 		// informationGain(baseName,targetClass,'windy',v);

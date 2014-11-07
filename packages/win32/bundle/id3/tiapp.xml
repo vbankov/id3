@@ -1,0 +1,28 @@
+<ti:app xmlns:ti="http://ti.appcelerator.org">
+
+<id>com.killah.id3</id>
+<name>id3</name>
+<version>1.0</version>
+<publisher>vasilis</publisher>
+<url>#</url>
+<icon>default_app_logo.png</icon>
+<copyright>2014</copyright>
+
+<window>
+<id>initial</id>
+<title>ID3 Classificator</title>
+<url>app://index.html</url>
+<width>950</width>
+<max-width>3000</max-width>
+<min-width>0</min-width>
+<height>700</height>
+<max-height>3000</max-height>
+<min-height>0</min-height>
+<fullscreen>false</fullscreen>
+<resizable>false</resizable>
+<chrome scrollbars="true">true</chrome>
+<maximizable>true</maximizable>
+<minimizable>true</minimizable>
+<closeable>true</closeable>
+</window>
+</ti:app>

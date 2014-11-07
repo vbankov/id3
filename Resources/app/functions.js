@@ -1,5 +1,3 @@
-function spinIcon(icon,t){/*var icon = $('#search-btn-icon');*/ if(t){icon .removeClass('glyphicon-search') .addClass('glyphicon-refresh') .addClass('spin'); }else{icon .removeClass('spin') .removeClass('glyphicon-refresh') .addClass('glyphicon-search'); } } 
-
 function loadFile(titFile){
     var fileContent = "";
     var fileStream = Ti.Filesystem.getFileStream(titFile);
@@ -14,14 +12,39 @@ function log2(x){return Math.log(x)/Math.log(2);}
 function parseArff(baseName){
   var resourcesDir = Ti.Filesystem.getResourcesDirectory();
   var dir = Ti.Filesystem.getFile(resourcesDir+"\\data\\");
-  // convert arff file and save as json
-  arff(dir.toString()+"\\"+baseName+'.arff','-json');
+  var file= Ti.Filesystem.getFile(dir, baseName+'.json');      
+  // check if already converted
+  if (!file.exists())
+  { 
+    // convert arff file and save as json
+    arff(dir.toString()+"\\"+baseName+'.arff','-json');
+  }      
   var contents;      
-      file= Ti.Filesystem.getFile(dir, baseName+'.json');      
   contents = loadFile(file);
   window.data = jQuery.parseJSON(contents);
 }
 function populateDB(db,baseName,contents){
+  var dataLength = contents.data.length;
+  var query = "SELECT COUNT(name) AS count FROM sqlite_master WHERE type='table' AND name='"+baseName+"';";
+  var rows = db.execute(query);
+  console.log('\nChecking for dataset in db\n');
+  while (rows.isValidRow()) {
+      var o = rows.fieldByName('count');
+      rows.next();
+  }
+  if(o==1){// table exists
+    query = "SELECT COUNT(*) AS count FROM '"+baseName+"';";
+    rows = db.execute(query);
+    while (rows.isValidRow()) {
+      // push sql's answer to array
+      var n = Number(rows.fieldByName('count'));
+      rows.next();
+    }
+    if(n==dataLength){
+      console.log('Dataset already in database. Skipping populating.\n\n');
+      return 1;
+    }
+  }
   var q1 = 'ID INTEGER AUTO_INCREMENT, ',q2 = 'id,',q3 = '';
   for(i in data.attributes){
     if(i!=data.attributes.length-1){
@@ -156,9 +179,9 @@ function entropyX(baseName,attribute,extras){
   }
   q = "SELECT "+attribute+","+
         "100 * count(*) / (SELECT count(*) FROM "+baseName+" WHERE "+extraSQL+") AS score "+ 
-        "FROM weather "+
+        "FROM "+baseName+" "+
         "WHERE "+extraSQL+" "+
-        "GROUP BY play";
+        "GROUP BY "+targetClass;
   rows = db.execute(q);
   while(rows.isValidRow()){
     probs.push(Number(rows.fieldByName('score'))/100);
@@ -185,7 +208,7 @@ function entropy(baseName,attribute){
   // we want to get entropy by attribute name.  
   // let's use a neat sql statement to get the percentage of the distinct attribute values
   var q = "SELECT CAST(COUNT("+attribute+") AS float) / CAST(t.Total AS float) AS percentage "+
-          "FROM weather, "+
+          "FROM "+baseName+", "+
                "(SELECT COUNT(*) As Total FROM "+baseName+") t "+
           "GROUP BY "+attribute+", Total",
       probs = [];
@@ -214,7 +237,7 @@ function entropy(baseName,attribute){
   return logVals.reduce(function(a,b){return a+b},0); 
 }
 function entropyS(probs){
-
+  console.log('\nFired entropy for\n'+probs+'\n\n');
   var sum = _.reduce(probs,function(a,b){return a+b},0);
   var logVals = probs.map(function(p){
     x = p/sum;
@@ -223,7 +246,9 @@ function entropyS(probs){
     console.log('\nentropyS:: -('+p+'/'+sum+') * log2('+p+'/'+sum+') = '+y+' (x='+x+')  \n \n\n');
     return y;
   });
-  return logVals.reduce(function(a,b){return a+b},0); 
+  var e =logVals.reduce(function(a,b){return a+b},0); 
+  console.log('\nGot entropy\n'+e+'\n\n');
+  return e;
 }
 function entropyNum(nums,sum){
   /* 
@@ -241,7 +266,14 @@ function entropyNum(nums,sum){
   }else{
     sum = _.reduce(sum, function(a, b){ return a + b; }, 0),
   }
-
+  var allEqual = nums.reduce(function(a, b){return (a === b)? true:false;});
+  if(allEqual)
+    return 1;
+  for(i in nums){
+    if(nums[i]==sum){ // if all instances are of same class
+      return 0;
+    }
+  }
   if(nums[0]==nums[1] || (nums[0]==nums[1] && nums[1]==nums[2]) ){
     console.log('entropy is 1');
     return 1;
@@ -259,7 +291,7 @@ function entropyNum(nums,sum){
   }); 
   // sum all parts and return entropy value
   var ent = logVals.reduce(function(a,b){return a+b},0); 
-  console.log('entropy of ['+nums+','+sum+'] ='+ent);
+  console.log('entropy of ['+nums+'] over '+sum+' \n='+ent+'\n');
   return ent;
 }
 function getMaxInfoGain(baseName,data,targetClass,v){
@@ -310,11 +342,72 @@ function gain(baseName,targetClass,attribute,v){
       targetVals = getUnique(baseName,targetClass),
       S = [], Sv = [], P = [], T = [],
       entropies = [];
-  $('#message').empty();
+  // $('#message').empty();
 
   for(i in targetVals){S.push(countSubset(baseName,targetClass,targetVals[i],v));}
   var infoGain = entropyNum(S);
 
+  for(i in attrVals){P.push(countSubset(baseName,attribute,attrVals[i],v)); } 
+  for(i in attrVals){T.push(countSubset(baseName,attribute,attrVals[i])); } 
+  for(i in attrVals){
+    // subsets.push(countSubset(baseName,attribute,attrVals[i]));  
+    Sv[i] = getSv(baseName,targetClass,attribute,attrVals[i],v);
+  }
+  for(i in v){
+    console.log('gain('+baseName+','+targetClass+','+attribute+',v) called');
+    console.log('has parent node '+v[i].attribute+'='+v[i].value);
+  }
+  // if(v.length==1){
+  //  sUnderV = countSubset(baseName,v[0].attribute,v[0].value);
+  // }
+  
+  // calculate entropies of subsets
+  for(i in Sv){
+    var s = Sv[i];
+    entropies.push(entropyNum(s));
+  }
+  var infoGain = entropyNum(S);
+  var sum = _.reduce(P, function(memo, num){ return memo + num; }, 0);
+  console.log('\n\nInfoGain fired for '+attribute+'\n\n');
+  console.log('attributes are ');
+  for(i in attrVals) 
+    console.log(attrVals[i]);
+  console.log('infoGain initialized at '+infoGain+'\n\n');
+  console.log('\nSv = \n');
+  for(i in Sv)
+    console.log('S['+i+'] = '+Sv[i]);
+  console.log('\nP = \n');
+  for(i in P)
+    console.log('P['+i+'] = '+P[i]);
+  console.log('\nT = \n');
+  for(i in P)
+    console.log('T['+i+'] = '+T[i]);
+  console.log('sum = '+sum+'\n\n');
+  console.log('entropies = '+entropies+'\n\n');
+  for(i in entropies){
+    infoGain -= (P[i]/sum)*entropies[i];
+  }
+  var ans = {attribute:attribute,infoGain:infoGain};
+  var sumOfS = _.reduce(S,function(a,b){return a+b;},0);
+  for(i in S){
+    if(S[i]===sumOfS){
+      ans.cutTree=[targetClass, targetVals[i]];
+      return ans;
+    }
+  }
+
+  console.log('\n\n GAIN = '+infoGain+'\n\n');
+  return ans;
+}
+function gain0(baseName,targetClass,attribute,v){
+  var attrVals = getUnique(baseName,attribute),
+      targetVals = getUnique(baseName,targetClass),
+      S = [], Sv = [], P = [], T = [],
+      entropies = [];
+  $('#message').empty();
+
+  for(i in targetVals){S.push(countSubset(baseName,targetClass,targetVals[i],v));}
+  var infoGain = entropyNum(S);
   for(i in attrVals){P.push(countSubset(baseName,attribute,attrVals[i],v)); } 
   for(i in attrVals){T.push(countSubset(baseName,attribute,attrVals[i])); } 
   for(i in attrVals){
@@ -340,17 +433,36 @@ function gain(baseName,targetClass,attribute,v){
   }
   console.log('\n\n GAIN = '+infoGain+'\n\n');
   return {attribute:attribute,infoGain:infoGain};
+  // var sums=[];
+  // for(i in Sv){
+  //  s=0;
+  //  for(j in Sv[i]){
+  //    s+=Sv[i][j];
+  //  }
+  //  sums.push(s);
+  // }
 }
 function maxGain(baseName,data,targetClass,v){
-  var infoGains = [];
+  var infoGains = [],
+      p = null;
   for(i in data.attributes){
     if(data.attributes[i].name!=targetClass){
-      console.log('will check for '+data.attributes[i].name);
-      thisGain = gain(baseName,targetClass,data.attributes[i].name,v);
-      infoGains.push(thisGain);
+      if(typeof v=='undefined'){
+        console.log('will check for '+data.attributes[i].name);
+        thisGain = gain(baseName,targetClass,data.attributes[i].name,v);
+        infoGains.push(thisGain);
+      }else{
+        if(data.attributes[i].name!=v[0].attribute){
+          console.log('will check for '+data.attributes[i].name);
+          thisGain = gain(baseName,targetClass,data.attributes[i].name,v);
+          infoGains.push(thisGain);
+          p = v[0];
+        }
+      }
     }
   }
   var k = _.pluck(infoGains, 'infoGain');
   var m = _.max(infoGains,function(infoGain){return infoGain.infoGain});
-  return m;
+
+  return {max: m, infoGains: infoGains, parent: p};
 }

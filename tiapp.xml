@@ -11,7 +11,7 @@
 <!-- Window Definition - these values can be edited -->
 <window>
 <id>initial</id>
-<title>ID3 Classificator</title>
+<title>ID3 Classifier</title>
 <url>app://index.html</url>
 <width>800</width>
 <max-width>3000</max-width>
@@ -20,7 +20,7 @@
 <max-height>3000</max-height>
 <min-height>0</min-height>
 <fullscreen>false</fullscreen>
-<resizable>true</resizable>
+<resizable>false</resizable>
 <chrome scrollbars="true">true</chrome>
 <maximizable>true</maximizable>
 <minimizable>true</minimizable>

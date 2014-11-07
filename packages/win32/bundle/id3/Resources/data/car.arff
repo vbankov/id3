@@ -1,0 +1,62 @@
+
+@relation car
+
+@attribute buying {vhigh,high,med,low}
+@attribute maint {vhigh,high,med,low}
+@attribute doors {2,3,4,5more}
+@attribute persons {2,4,more}
+@attribute lug_boot {small,med,big}
+@attribute safety {low,med,high}
+@attribute class {unacc,acc,good,vgood}
+
+@data
+low,low,4,2,med,med,unacc
+low,low,4,2,med,high,unacc
+low,low,4,2,big,low,unacc
+low,low,4,2,big,med,unacc
+low,low,4,2,big,high,unacc
+low,low,4,4,small,low,unacc
+low,low,4,4,small,med,acc
+low,low,4,4,small,high,good
+low,low,4,4,med,low,unacc
+low,low,4,4,med,med,good
+low,low,4,4,med,high,vgood
+low,low,4,4,big,low,unacc
+low,low,4,4,big,med,good
+low,low,4,4,big,high,vgood
+low,low,4,more,small,low,unacc
+low,low,4,more,small,med,acc
+low,low,4,more,small,high,good
+low,low,4,more,med,low,unacc
+low,low,4,more,med,med,good
+low,low,4,more,med,high,vgood
+low,low,4,more,big,low,unacc
+low,low,4,more,big,med,good
+low,low,4,more,big,high,vgood
+low,low,5more,2,small,low,unacc
+low,low,5more,2,small,med,unacc
+low,low,5more,2,small,high,unacc
+low,low,5more,2,med,low,unacc
+low,low,5more,2,med,med,unacc
+low,low,5more,2,med,high,unacc
+low,low,5more,2,big,low,unacc
+low,low,5more,2,big,med,unacc
+low,low,5more,2,big,high,unacc
+low,low,5more,4,small,low,unacc
+low,low,5more,4,small,med,acc
+low,low,5more,4,small,high,good
+low,low,5more,4,med,low,unacc
+low,low,5more,4,med,med,good
+low,low,5more,4,med,high,vgood
+low,low,5more,4,big,low,unacc
+low,low,5more,4,big,med,good
+low,low,5more,4,big,high,vgood
+low,low,5more,more,small,low,unacc
+low,low,5more,more,small,med,acc
+low,low,5more,more,small,high,good
+low,low,5more,more,med,low,unacc
+low,low,5more,more,med,med,good
+low,low,5more,more,med,high,vgood
+low,low,5more,more,big,low,unacc
+low,low,5more,more,big,med,good
+low,low,5more,more,big,high,vgood

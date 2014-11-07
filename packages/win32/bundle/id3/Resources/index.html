@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ID3 Classificator</title>
+    <link href="assets/css/bootstrap.min.css" rel="stylesheet">
+    <!-- <link href="assets/css/cover.css" rel="stylesheet"> -->
+    <style type="text/css">
+			@font-face {
+					font-family: 'Montserrat';
+			    src: url('assets/fonts/Montserrat-Regular-webfont.svg#montserratregular') format('svg');
+			    font-weight: normal;
+			    font-style: normal;
+			}
+			@font-face {
+			    font-family: 'Montserrat';
+			    src: url('assets/fonts/Montserrat-Bold-webfont.svg#montserratbold') format('svg');
+			    font-weight: bold;
+			    font-style: normal;
+			}
+			@font-face {
+			    font-family: 'OpenSans';
+			    src: url('assets/fonts/OpenSans-Light-webfont.svg#open_sanslight') format('svg');
+			    font-weight: 300;
+			    font-style: normal;
+			}
+			@font-face {
+			    font-family: 'OpenSans';
+			    src: url('assets/fonts/OpenSans-Regular-webfont.svg#open_sansregular') format('svg');
+			    font-weight: 400;
+			    font-style: normal;
+			}
+    	body{font-family: 'OpenSans', sans-serif !important;background-color: #7a868f;color:#fff;}
+    	a{color:#fff;}
+    	.widget {
+				position: relative;
+				background-color: #7a868f;
+				/*background: #fff;*/
+				color: #fff;
+				margin-bottom: 20px;
+			}
+    	.widget .widget-header {
+    		font-family: 'Montserrat';
+				height: 43px;
+				display: block;
+			}
+			.widget-header.transparent {
+				background: transparent;
+				border: none;
+			}
+			.widget-header, .widget-content {
+				display: block;
+				width: 100%;
+				clear: both;
+			}
+    </style>
+  </head>
+	<body>
+        <div class="container-fluid">
+          <div class="row widget">
+        		<div class="widget-header transparent">
+							<h2><strong>ID3</strong> Classifier</h2>
+						</div>
+						<div class="widget-content" style="display: block;">
+								<div id="website-statistic2" class="statistic-chart">
+
+									<div class="col-md-12 stacked" id="message">
+										
+									</div>
+									<div class="clearfix"></div>
+								</div>
+							</div>
+            <p class="lead">
+              <form class="form-inline" role="form">
+							  <div class="form-group">
+							    <label class="col-sm-2 control-label">Dataset</label>
+							  </div>
+							  <div class="form-group">
+							    <!-- <div class="col-sm-3"> -->
+						    	<select class="form-control" id="datasets">
+									</select>
+							  </div>
+							  <div class="form-group">
+							    <!-- </div> -->
+							    <!-- <div class="col-sm-3"> -->
+              			<a href="#" class="btn btn-default" id="getDataset"><span class="glyphicon glyphicon-off"></span> Go</a>
+							    <!-- </div> -->
+							  </div>
+							</form>
+            </p>
+          </div>
+          <div class="footer">
+            <div class="inner">
+              <p>Project for <a href="http://msc.icsd.aegean.gr/academics/fields/3-intelligent-information-systems/" target="_blank">Machine Learning</a> Post-Grad Class - ICSD 2014 - <a href="#">Vasilis Bankov</a>.</p>
+            </div>
+          </div>
+
+        </div>
+
+		<script type="text/python">
+			import arff_parser
+			window.arff = arff_parser.main
+		</script>
+		<script src="assets/js/jquery.min.js"></script>
+		<script src="assets/js/underscore-min.js"></script>
+		<script src="assets/js/bootstrap.min.js"></script>
+		<script src="app/functions.js"></script>
+		<script type="text/javascript">
+			var menu = Ti.UI.createMenu(),
+			fileItem = Ti.UI.createMenuItem('File'),
+			exitItem = fileItem.addItem('Exit', function() {
+			  if (confirm('Are you sure you want to quit?')) {
+			    Ti.App.exit();
+			  }
+			});
+			menu.appendItem(fileItem);
+			Ti.UI.setMenu(menu);
+		</script>
+		<script type="text/javascript">
+			$(function() {
+        var resourcesDir = Ti.Filesystem.getResourcesDirectory();
+        var dir = Ti.Filesystem.getFile(resourcesDir+"\\data");
+        var dir_files = dir.getDirectoryListing();
+        for (var i=0;i<dir_files.length;i++){ 
+        	var k = dir_files[i].name();
+        	k = k.substring(k.length-5,k.length); 
+          if(k==='.arff'){
+          	var name = dir_files[i].name();
+          	name = name.substring(0,name.length-5);
+            $("#datasets").append('<option>'+name+'</option>');
+          }
+        }
+        $('#getDataset').click(function(){
+        	var selectedDataset = $('#datasets option:selected').text();
+					$('#message').html('<h2>working...</h2>');
+					setTimeout(function(){ 
+						initialize(selectedDataset);
+					},100);
+        });
+	    });
+		</script>
+		<script type="text/javascript">
+			function getTargetClass(baseName){
+				switch(baseName){
+					case 'car':
+						return 'class';
+						break;
+					case 'weather':
+						return 'play';
+						break;
+					default: 
+						return 'class'; 
+				}
+			}
+			function initialize(baseName){
+				var Dir = Ti.Filesystem.getResourcesDirectory(), // Dir = 'D:\\DEV\\repos\\tideSDK\\ID3\\Resources\\';
+						dbFile = Dir+'/app.db';
+						db = Ti.Database.openFile(dbFile);//Ti.App.appURLToPath("app://app.db")),
+						infoGains = []
+						dataModel={};
+				var targetClass = getTargetClass(baseName);
+				parseArff(baseName);
+				populateDB(db,baseName,data);
+				setSize = getSetSize(baseName);
+				setEntropy = entropy(baseName,targetClass);
+				// LOG('setEntropy is '+setEntropy+'<br>');
+				// informationGain(baseName,targetClass,'windy');
+				gains = maxGain(baseName,data,targetClass);
+				$('#message').empty();
+				for(i in gains.infoGains){
+					$('#message').append(
+						'<div class="row">'+
+							'<div class="col-md-6">'+gains.infoGains[i].attribute+'</div>'+
+							'<div class="col-md-6">'+gains.infoGains[i].infoGain+'</div>'+
+						'</div>'
+					)	
+				}
+				console.log('\n\n ====== INFOGAINS ======');
+				console.log(gains);
+				Root = gains.max;
+				$('#message').append('<h2>Set is '+baseName+'</h2>');
+				$('#message').append('<h2>Root is '+Root.attribute+' with Gain = '+Root.infoGain+'</h2>');
+				// for(i in Root.Attribute.PossibleValues){ max with conditions }
+
+
+
+				// close db connection
+				db.close();
+			}
+		</script>
+	</body>
+</html>

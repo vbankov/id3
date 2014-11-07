@@ -6,21 +6,73 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ID3 Classificator</title>
     <link href="assets/css/bootstrap.min.css" rel="stylesheet">
-    <link href="assets/css/cover.css" rel="stylesheet">
-    <style type="text/css">.spin {-webkit-animation: spin 1.2s infinite linear; -moz-animation: spin 1.2s infinite linear; -o-animation: spin 1.2s infinite linear; animation: spin 1.2s infinite linear; -webkit-transform-origin: 50% 50%; transform-origin:50% 50%; -ms-transform-origin:50% 50%; /* IE 9 */ } @-moz-keyframes spin {from {-moz-transform: rotate(0deg); } to {-moz-transform: rotate(360deg); } } @-webkit-keyframes spin {from {-webkit-transform: rotate(0deg); } to {-webkit-transform: rotate(360deg); } } @keyframes spin {from {transform: rotate(0deg); } to {transform: rotate(360deg); } }</style>
+    <!-- <link href="assets/css/cover.css" rel="stylesheet"> -->
+    <style type="text/css">
+			@font-face {
+					font-family: 'Montserrat';
+			    src: url('assets/fonts/Montserrat-Regular-webfont.svg#montserratregular') format('svg');
+			    font-weight: normal;
+			    font-style: normal;
+			}
+			@font-face {
+			    font-family: 'Montserrat';
+			    src: url('assets/fonts/Montserrat-Bold-webfont.svg#montserratbold') format('svg');
+			    font-weight: bold;
+			    font-style: normal;
+			}
+			@font-face {
+			    font-family: 'OpenSans';
+			    src: url('assets/fonts/OpenSans-Light-webfont.svg#open_sanslight') format('svg');
+			    font-weight: 300;
+			    font-style: normal;
+			}
+			@font-face {
+			    font-family: 'OpenSans';
+			    src: url('assets/fonts/OpenSans-Regular-webfont.svg#open_sansregular') format('svg');
+			    font-weight: 400;
+			    font-style: normal;
+			}
+    	body{font-family: 'OpenSans', sans-serif !important;background-color: #7a868f;color:#fff;}
+    	a{color:#fff;}
+    	.widget {
+				position: relative;
+				background-color: #7a868f;
+				/*background: #fff;*/
+				color: #fff;
+				margin-bottom: 20px;
+			}
+    	.widget .widget-header {
+    		font-family: 'Montserrat';
+				height: 43px;
+				display: block;
+			}
+			.widget-header.transparent {
+				background: transparent;
+				border: none;
+			}
+			.widget-header, .widget-content {
+				display: block;
+				width: 100%;
+				clear: both;
+			}
+      #chart_div{color: #000;}
+    </style>
   </head>
 	<body>
-		<div class="site-wrapper">
-
-      <div class="site-wrapper-inner">
-
-        <div class="cover-container">
-
-          <div class="inner cover">
-            <h1 class="cover-heading">ID3</h1>
-            <p class="lead">
-							<div id="message"></div>
-            </p>
+        <div class="container-fluid">
+          <div class="row widget">
+        		<div class="widget-header transparent text-center">
+							<h2><strong>ID3</strong> Classifier <small id="dataset-small" style="color:#d8d8d8"></small></h2>
+						</div>
+						<div class="widget-content" style="display: block;">
+								<div id="website-statistic2" class="statistic-chart">
+                  <div id="chart_div"></div>
+									<div class="col-md-12 stacked" id="message">
+										
+									</div>
+									<div class="clearfix"></div>
+								</div>
+							</div>
             <p class="lead">
               <form class="form-inline" role="form">
 							  <div class="form-group">
@@ -40,18 +92,14 @@
 							</form>
             </p>
           </div>
-
-          <div class="mastfoot">
+          <div class="footer">
             <div class="inner">
-              <p>Project for <a href="msc.icsd.aegean.gr/academics/fields/3-intelligent-information-systems/" target="_blank">Machine Learning</a>, by <a href="#">Vasilis Bankov</a>.</p>
+              <p>Project for <a href="http://msc.icsd.aegean.gr/academics/fields/3-intelligent-information-systems/" target="_blank">Machine Learning</a> Post-Grad Class - ICSD 2014 - <a href="#">Vasilis Bankov</a></p>
             </div>
           </div>
 
         </div>
 
-      </div>
-
-    </div>
 		<script type="text/python">
 			import arff_parser
 			window.arff = arff_parser.main
@@ -60,7 +108,10 @@
 		<script src="assets/js/underscore-min.js"></script>
 		<script src="assets/js/bootstrap.min.js"></script>
 		<script src="app/functions.js"></script>
-		<script type="text/javascript">
+  <!-- 
+    <script type="text/javascript" src="https://www.google.com/jsapi?autoload={'modules':[{'name':'visualization','version':'1','packages':['orgchart']}]}"></script>
+	-->	
+    <script type="text/javascript">
 			var menu = Ti.UI.createMenu(),
 			fileItem = Ti.UI.createMenuItem('File'),
 			exitItem = fileItem.addItem('Exit', function() {
@@ -87,40 +138,192 @@
         }
         $('#getDataset').click(function(){
         	var selectedDataset = $('#datasets option:selected').text();
-        	initialize(selectedDataset);
+          $('#dataset-small').text('dataset: '+selectedDataset);
+					$('#message').html('<h2>Thank you for waiting</h2>');
+					setTimeout(function(){ 
+						initialize(selectedDataset);
+					},100);
         });
 	    });
 		</script>
 		<script type="text/javascript">
+			function getTargetClass(baseName){
+				switch(baseName){
+					case 'car':
+						return 'class';
+						break;
+					case 'weather':
+						return 'play';
+						break;
+					default: 
+						return 'class'; 
+				}
+			}
+      function pushToTree(node,parent,level,cut){
+        /*
+         *  Tree structure should be like:
+         *
+         *  [
+         *    [{v:'Safety',f:'Safety'}, '', 'Root'],
+         *    [{v:'safety:low',f:'[Low]<br>Persons'}, 'Safety', ''],
+         *    [{v:'safety:med',f:'[Med]<br>unacc'}, 'Safety', ''],
+         *    [{v:'safety:high',f:'[High]<br>Persons'}, 'Safety', '']
+         *  ]
+         */
+         var tree = [];
+        if(level==1){
+          if(typeof cut!='undefined'){
+
+          }else{
+            var v = parent.attribute+':'+parent.value+":"+node.attribute,
+                f = '['+parent.value+']<br>'+node.attribute,
+            nodeJSON = [
+                {
+                  v: v,
+                  f: f
+                },
+                parent.attribute,
+                ''
+            ];
+            window.tree.push(nodeJSON);
+          } // END OF if isset cut
+        } // END OF if level==1
+      } // END OF pushToTree
 			function initialize(baseName){
-				var targetClass = 'play',
-						Dir = Ti.Filesystem.getResourcesDirectory(), // Dir = 'D:\\DEV\\repos\\tideSDK\\ID3\\Resources\\';
+				var Dir = Ti.Filesystem.getResourcesDirectory(), // Dir = 'D:\\DEV\\repos\\tideSDK\\ID3\\Resources\\';
 						dbFile = Dir+'/app.db';
 						db = Ti.Database.openFile(dbFile);//Ti.App.appURLToPath("app://app.db")),
 						infoGains = []
 						dataModel={};
-				switch(baseName){
-					case 'car':
-						targetClass = 'class',
-					default: 
-						targetClass = 'play' 
-				}
+				var targetClass = getTargetClass(baseName);
 				parseArff(baseName);
 				populateDB(db,baseName,data);
 				setSize = getSetSize(baseName);
 				setEntropy = entropy(baseName,targetClass);
 				// LOG('setEntropy is '+setEntropy+'<br>');
 				// informationGain(baseName,targetClass,'windy');
-				Root = maxGain(baseName,data,targetClass);
-				$('#message').append('<h2>Set is '+baseName+'</h2>');
-				$('#message').append('<h2>Root is '+Root.attribute+' with Gain = '+Root.infoGain+'</h2>');
-				// for(i in Root.Attribute.PossibleValues){ max with conditions }
+				gains = maxGain(baseName,data,targetClass);
 
+				$('#message').empty().append('<div class="row">'+ '<div class="col-xs-12 col-md-12">'+ '<div class="col-xs-3 col-md-4"><h3>attribute</h3></div>'+ '<div class="col-xs-4 col-md-4"><h3>infoGain</h3></div>'+ '</div>'+ '</div>');
+        for(i in gains.infoGains){$('#message').append('<div class="row">'+ '<div class="col-xs-12 col-md-12">'+ '<div class="col-xs-3 col-md-4">'+gains.infoGains[i].attribute+'</div>'+ '<div class="col-xs-4 col-md-4">'+gains.infoGains[i].infoGain+'</div>'+ '</div>'+ '</div>'); }
+
+				console.log('\n\n ====== INFOGAINS ======');
+				console.log(gains);
+				Root = gains.max;
+        var u = getUnique(baseName,Root.attribute);
+        var node0 = {
+          level: 0, 
+          parent : null,
+          parentValue: null, 
+          attribute: Root.attribute, 
+          values: u,
+          infoGain: Root.infoGain
+        };
+        console.log('\n\n\n');
+        console.log(node0);
+        console.log('\n\n\n');
+        var level1=[],
+            level2=[];
+        window.treeData = [];
+        window.treeData.push([{v:node0.attribute,f:node0.attribute},'','']);
+        var rootDesc = [node0.attribute,'','Root'];
+        window.tree = [rootDesc];
+        // v = [{attribute: 'outlook',value:'overcast'}];
+        
+        for(i in node0.values){
+          var v = [{attribute: node0.attribute, value: node0.values[i]}];
+          var maxG = maxGain(baseName,data,targetClass,v);
+          if(maxG.max.hasOwnProperty('cutTree')){
+            console.log('branch cut withAnswer ');
+            console.log(maxG.max.cutTree);
+          }
+          var thisNode = maxG.max;
+          var thisNodeParent = maxG.parent;
+          pushToTree(thisNode,thisNodeParent,1);
+
+          console.log('\nmaxG\n');
+          console.log(maxG);
+          window.treeData.push([{v:maxG.max.attribute,f:maxG.parent.attribute+' '+maxG.parent.value},maxG.parent.attribute,maxG.parent.value ]);
+          level1.push(maxG);
+        } // END FOR i in node0.values
+        console.log('\n=======================\tLEVEL 1 NODES\t=======================\n');
+        console.log(level1);
+        console.log('\n\n');
+        for(i in level1){
+          thisNode = level1[i].max;
+          thisNodeParent = level1[i].parent;
+          var thisNodeVals = getUnique(baseName,thisNode.attribute);
+          for(var j in thisNodeVals){
+            v = [thisNodeParent, {attribute: thisNode.attribute, value: thisNodeVals[j]}];
+            console.log('new contrains'+JSON.stringify(v)+'\n');
+            var maxG = maxGain(baseName,data,targetClass,v);
+            if(maxG.max.hasOwnProperty('cutTree')){
+              console.log('\n\nbranch cut withAnswer '+JSON.stringify(maxG.max.cutTree)+'\n\n');
+            }else{
+              level2.push(maxG);
+              pushToTree(maxG.max,maxG.parent,2);
+            }
+
+          }
+          console.log('node ');
+          console.log(thisNode);
+          console.log('parent ');
+          console.log(thisNodeParent);
+          console.log('values ');
+          console.log(thisNodeVals);
+        }
+
+        console.log('\n=======================\tLEVEL 2 NODES\t=======================\n');
+        console.log(level2);
+        console.log('\n\n');
+        // $('#message').append(
+        //   '<br><br><div class="row">'+
+        //    '<div class="col-xs-4">ROOT</div>'+
+        //    '<div class="col-xs-6">'+
+        //       '<h3>'+node0.attribute+'</h3>'+ 
+        //    '</div><br><br>'
+        // );
+        // if(level1.length==3){
+        //   $('#message').append(
+        //     '<div class="row">'+
+        //       '<div class="col-xs-4">'+
+        //         '['+level1[0].parent.value+'] <h4>'+level1[0].max.attribute+'</h4> '+
+        //       '</div>'+
+        //       '<div class="col-xs-4">'+
+        //         '['+level1[1].parent.value+'] <h4>'+level1[1].max.attribute+'</h4> '+
+        //       '</div>'+
+        //       '<div class="col-xs-4">'+
+        //         '['+level1[2].parent.value+'] <h4>'+level1[2].max.attribute+'</h4> '+
+        //       '</div>'+
+        //    '</div>'
+        //   );
+        // }
+        
+        // drawChart();
+
+
+        // $('#message').append('<h2>Root is '+Root.attribute+' with Gain = '+Root.infoGain+'</h2>');
+				// for(i in Root.Attribute.PossibleValues){ max with conditions }
 
 
 				// close db connection
 				db.close();
 			}
+    </script>
+    <script>
+      google.setOnLoadCallback(drawChart);
+      function drawChart() {
+        var data = new google.visualization.DataTable();
+        data.addColumn('string', 'Name');
+        data.addColumn('string', 'Attribute');
+        data.addColumn('string', 'ToolTip');
+
+        // data.addRows([["safety","","Root"],[{"v":"safety:high","f":"[high]<br>persons"},"safety",""],[{"v":"safety:low","f":"[low]<br>buying"},"safety",""],[{"v":"safety:med","f":"[med]<br>persons"},"safety",""]]);
+        var treeD = window.tree;
+        data.addRows(treeD);
+        var chart = new google.visualization.OrgChart(document.getElementById('chart_div'));
+        chart.draw(data, {allowHtml:true});
+      }
 		</script>
 	</body>
 </html>
